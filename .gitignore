@@ -1,0 +1,6 @@
+.env
+venv/
+__pycache__/
+*.pyc
+wb_dashboard.db
+.streamlit/secrets.toml
