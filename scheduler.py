@@ -7,6 +7,7 @@ import logging
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from collector import sync
+from ads_collector import sync_ads
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("scheduler")
@@ -16,9 +17,15 @@ def job():
     log.info("Запуск плановой синхронизации с WB API")
     try:
         new_rows = sync()
-        log.info("Синхронизация завершена успешно, новых строк: %d", new_rows)
+        log.info("Синхронизация финансов завершена успешно, новых строк: %d", new_rows)
     except Exception:
-        log.exception("Ошибка во время синхронизации")
+        log.exception("Ошибка во время синхронизации финансового отчёта")
+
+    try:
+        ad_rows = sync_ads()
+        log.info("Синхронизация рекламы завершена успешно, записей: %d", ad_rows)
+    except Exception:
+        log.exception("Ошибка во время синхронизации статистики рекламы")
 
 
 if __name__ == "__main__":

@@ -93,6 +93,55 @@ class SyncState(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
+class ProductCost(Base):
+    """
+    Себестоимость за 1 штуку, по артикулу.
+    WB не знает эту цифру — её вводит сам продавец вручную в дашборде
+    (расходы на рекламу, в отличие от себестоимости, подтягиваются
+    автоматически из WB API — см. таблицу AdSpend ниже).
+
+    Хранится одна актуальная цифра на артикул (без привязки к месяцу) —
+    это проще для пользователя. Если закупочная цена меняется, продавец
+    просто обновляет цифру в таблице, и дашборд использует её для расчёта
+    прибыли по всем периодам (включая прошлые продажи).
+    """
+    __tablename__ = "product_costs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    sa_name = Column(String, nullable=False, unique=True, index=True)  # артикул продавца
+
+    cost_per_unit = Column(Float, default=0)  # себестоимость за 1 шт, руб
+
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class AdSpend(Base):
+    """
+    Расход на рекламу WB (раздел "Продвижение"), по дням и артикулам.
+    Собирается автоматически через /api/advert/v3/fullstats — продавцу
+    не нужно вводить эти цифры вручную.
+    """
+    __tablename__ = "ad_spend"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    advert_id = Column(BigInteger, index=True)   # ID рекламной кампании WB
+    nm_id = Column(BigInteger, index=True)         # артикул WB, на который шёл расход
+    spend_date = Column(Date, index=True)          # день, за который считается расход
+
+    sum_spent = Column(Float, default=0)          # потрачено, руб
+    views = Column(Integer, default=0)
+    clicks = Column(Integer, default=0)
+    orders = Column(Integer, default=0)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("advert_id", "nm_id", "spend_date", name="uq_ad_spend_day"),
+    )
+
+
 def get_engine():
     db_url = os.environ.get("DATABASE_URL", "sqlite:///wb_dashboard.db")
     # Railway/Heroku иногда отдают строку с postgres://, SQLAlchemy 2.x хочет postgresql://
